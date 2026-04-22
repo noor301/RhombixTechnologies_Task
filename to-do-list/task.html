@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TaskFlow – To-Do App</title>
+  <link rel="stylesheet" href="task.css">
+
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+<!-- ==================== HTML ==================== -->
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <h1>Task<span>Flow</span></h1>
+    <p>Stay organized, stay focused.</p>
+    <div class="stats">
+      <span><strong id="total-count">0</strong> total</span>
+      <span><strong id="done-count">0</strong> completed</span>
+      <span><strong id="left-count">0</strong> remaining</span>
+    </div>
+  </header>
+
+  <!-- Input Area -->
+  <div class="input-area">
+    <div class="input-row">
+      <input
+        type="text"
+        id="task-input"
+        placeholder="Add a new task..."
+        maxlength="120"
+      />
+      <button class="btn-add" onclick="addTask()" title="Add task">+</button>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-btn"        onclick="setFilter('active', this)">Active</button>
+    <button class="filter-btn"        onclick="setFilter('done', this)">Completed</button>
+  </div>
+
+  <!-- Task List (rendered by JS) -->
+  <div id="task-list"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button class="btn-clear" onclick="clearCompleted()">Clear completed</button>
+  </div>
+
+</div><!-- end .container -->
+
+
+<!-- ==================== JAVASCRIPT ==================== -->
+<script>
+  /*
+   * ─────────────────────────────────────────────
+   *   STATE
+   *   tasks  → array of task objects in memory
+   *   currentFilter → 'all' | 'active' | 'done'
+   * ─────────────────────────────────────────────
+   */
+  let tasks         = JSON.parse(localStorage.getItem('taskflow_tasks')) || [];
+  let currentFilter = 'all';
+
+  /*
+   * ─────────────────────────────────────────────
+   *   LOCALSTORAGE: SAVE
+   *   Called after every state change.
+   *   Converts the JS array → JSON string → stores it.
+   * ─────────────────────────────────────────────
+   */
+  function saveTasks() {
+    localStorage.setItem('taskflow_tasks', JSON.stringify(tasks));
+    updateStats();
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   UPDATE STATS BAR
+   * ─────────────────────────────────────────────
+   */
+  function updateStats() {
+    const total = tasks.length;
+    const done  = tasks.filter(t => t.done).length;
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('done-count').textContent  = done;
+    document.getElementById('left-count').textContent  = total - done;
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   ADD TASK
+   *   Reads input value → creates task object →
+   *   pushes to array → saves → re-renders.
+   * ─────────────────────────────────────────────
+   */
+  function addTask() {
+    const input = document.getElementById('task-input');
+    const text  = input.value.trim();
+
+    if (!text) {          // empty input guard
+      input.focus();
+      return;
+    }
+
+    // Task object structure
+    tasks.unshift({
+      id:   Date.now(),   // unique numeric ID using timestamp
+      text: text,
+      done: false
+    });
+
+    saveTasks();          // → localStorage.setItem(...)
+    renderTasks();
+    input.value = '';
+    input.focus();
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   TOGGLE DONE
+   *   Flips the done boolean for one task.
+   * ─────────────────────────────────────────────
+   */
+  function toggleDone(id) {
+    tasks = tasks.map(t => t.id === id ? { ...t, done: !t.done } : t);
+    saveTasks();
+    renderTasks();
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   DELETE TASK
+   *   Filters out the task with matching id.
+   * ─────────────────────────────────────────────
+   */
+  function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks();
+    renderTasks();
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   EDIT TASK
+   *   Re-renders the list with that task in edit mode.
+   * ─────────────────────────────────────────────
+   */
+  function startEdit(id) {
+    renderTasks(id);      // pass editing id so that task shows an <input>
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   SAVE EDIT
+   *   Reads edited value → updates task in array → saves.
+   * ─────────────────────────────────────────────
+   */
+  function saveEdit(id) {
+    const input = document.getElementById('edit-' + id);
+    if (!input) return;
+    const val = input.value.trim();
+    if (!val) return;     // don't allow saving empty text
+
+    tasks = tasks.map(t => t.id === id ? { ...t, text: val } : t);
+    saveTasks();
+    renderTasks();
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   SET FILTER
+   *   Switches between All / Active / Completed view.
+   * ─────────────────────────────────────────────
+   */
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTasks();
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   CLEAR COMPLETED
+   *   Removes all tasks where done === true.
+   * ─────────────────────────────────────────────
+   */
+  function clearCompleted() {
+    tasks = tasks.filter(t => !t.done);
+    saveTasks();
+    renderTasks();
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   GET FILTERED TASKS
+   *   Returns subset of tasks based on currentFilter.
+   * ─────────────────────────────────────────────
+   */
+  function getFiltered() {
+    if (currentFilter === 'active') return tasks.filter(t => !t.done);
+    if (currentFilter === 'done')   return tasks.filter(t =>  t.done);
+    return tasks;   // 'all'
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   RENDER TASKS
+   *   The only function that touches the DOM.
+   *   Builds HTML string from tasks array and injects it.
+   *   editingId (optional) → shows edit input for that task.
+   * ─────────────────────────────────────────────
+   */
+  function renderTasks(editingId = null) {
+    const list     = document.getElementById('task-list');
+    const filtered = getFiltered();
+
+    // Empty state messages per filter
+    if (filtered.length === 0) {
+      const msgs = {
+        all:    ['📋', 'No tasks yet. Add something above!'],
+        active: ['✅', "No active tasks — you're all caught up!"],
+        done:   ['🎯', 'No completed tasks yet.']
+      };
+      const [emoji, msg] = msgs[currentFilter];
+      list.innerHTML = `
+        <div class="empty-state">
+          <span class="emoji">${emoji}</span>${msg}
+        </div>`;
+      return;
+    }
+
+    // Build task card HTML for each task
+    list.innerHTML = filtered.map(task => {
+      const isEditing = (editingId === task.id);
+
+      return `
+        <div class="task-item ${task.done ? 'done' : ''}" data-id="${task.id}">
+
+          <!-- Circular checkbox -->
+          <div class="task-check" onclick="toggleDone(${task.id})">
+            ${task.done ? '✓' : ''}
+          </div>
+
+          <!-- Task text OR inline edit input -->
+          ${isEditing
+            ? `<input
+                 class="edit-input"
+                 id="edit-${task.id}"
+                 value="${task.text.replace(/"/g, '&quot;')}"
+                 onkeydown="
+                   if(event.key==='Enter')  saveEdit(${task.id});
+                   if(event.key==='Escape') renderTasks();
+                 "
+               />`
+            : `<span class="task-text">${escapeHTML(task.text)}</span>`
+          }
+
+          <!-- Edit / Save / Delete buttons -->
+          <div class="task-actions">
+            ${isEditing
+              ? `<button class="icon-btn save"   onclick="saveEdit(${task.id})"  title="Save">✓</button>`
+              : `<button class="icon-btn edit"   onclick="startEdit(${task.id})" title="Edit">✎</button>`
+            }
+            <button class="icon-btn delete" onclick="deleteTask(${task.id})" title="Delete">✕</button>
+          </div>
+
+        </div>`;
+    }).join('');
+
+    // Auto-focus the edit input when editing
+    if (editingId) {
+      const el = document.getElementById('edit-' + editingId);
+      if (el) {
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      }
+    }
+  }
+
+  /*
+   *   HELPER: escapeHTML
+   *   Prevents XSS by escaping special characters
+   *   before inserting user text into the DOM.
+   */
+  function escapeHTML(str) {
+    return str
+      .replace(/&/g,  '&amp;')
+      .replace(/</g,  '&lt;')
+      .replace(/>/g,  '&gt;')
+      .replace(/"/g,  '&quot;');
+  }
+
+  /*
+   * ─────────────────────────────────────────────
+   *   KEYBOARD SHORTCUT
+   *   Press Enter in the input field to add task.
+   * ─────────────────────────────────────────────
+   */
+  document.getElementById('task-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') addTask();
+  });
+
+  /*
+   * ─────────────────────────────────────────────
+   *   INITIAL RENDER
+   *   Runs once on page load.
+   *   Reads tasks from localStorage and displays them.
+   * ─────────────────────────────────────────────
+   */
+  renderTasks();
+
+</script>
+</body>
+</html>
