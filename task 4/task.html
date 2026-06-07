@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Book Library</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script></head>
+<body>
+    <header class="app-header">
+        <h1>Personal Library Dashboard</h1>
+    </header>
+
+    <main class="main-content">
+        <aside class="controls-sidebar">
+            <div class="card">
+                <h3>Add New Book</h3>
+                <form id="add-book-form" class="vertical-form">
+                    <input type="text" id="title-input" placeholder="Book Title" required>
+                    <input type="text" id="author-input" placeholder="Author" required>
+                    <select id="category-input">
+                        <option value="Fiction">Fiction</option>
+                        <option value="History">History</option>
+                        <option value="Self-Help">Self-Help</option>
+                        <option value="Science">Science</option>
+                        <option value="Biography">Biography</option>
+                    </select>
+                    <button type="submit" class="primary-btn">Add to Shelf</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Filters</h3>
+                <div class="filter-group">
+                    <label>Search Inventory</label>
+                    <input type="text" id="search-input" placeholder="Search by title or author...">
+                </div>
+                <div class="filter-group">
+                    <label>Category Layout</label>
+                    <div id="category-chips" class="category-chips">
+                        </div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="display-area">
+            <div id="borrow-overlay" class="card borrow-overlay hidden">
+                <h3>Check Out Book</h3>
+                <form id="borrow-form" class="inline-form">
+                    <input type="text" id="borrower-input" placeholder="Borrower's Name" required>
+                    <button type="submit" class="success-btn">Confirm Checkout</button>
+                    <button type="button" class="muted-btn" onclick="closeBorrowModal()">Cancel</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Book Inventory</h3>
+                <div id="books-grid" class="grid-container"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

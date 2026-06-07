@@ -1,0 +1,130 @@
+:root {
+    --bg-main: #f1f5f9;
+    --surface: #ffffff;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --success: #16a34a;
+    --text-dark: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-dark);
+}
+
+.app-container { min-height: 100vh; }
+
+.app-header {
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    text-align: center;
+}
+
+.app-header h1 { margin: 0; font-size: 1.75rem; }
+
+.main-content {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 850px) {
+    .main-content { grid-template-columns: 1fr; }
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.card h3 { margin-top: 0; margin-bottom: 1.25rem; font-size: 1.2rem; border-bottom: 2px solid var(--bg-main); padding-bottom: 0.5rem; }
+
+/* Forms Configuration */
+.vertical-form { display: flex; flex-direction: column; gap: 1rem; }
+.inline-form { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+input, select {
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    width: -webkit-fill-available;
+}
+
+input:focus, select:focus { outline: 2px solid var(--primary); }
+
+button {
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+}
+
+.primary-btn { background: var(--primary); color: white; }
+.primary-btn:hover { background: var(--primary-hover); }
+.success-btn { background: var(--success); color: white; }
+.muted-btn { background: #e2e8f0; color: var(--text-dark); }
+
+/* Filter Controls Layout */
+.filter-group { margin-bottom: 1.25rem; }
+.filter-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; }
+
+.category-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.chip { background: #e2e8f0; color: var(--text-dark); padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 20px; }
+.chip.active { background: var(--primary); color: white; }
+
+/* Library Grid View */
+.grid-container { display: flex; flex-direction: column; gap: 1rem; }
+
+.book-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+@media (max-width: 550px) {
+    .book-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
+}
+
+.book-info h4 { margin: 0 0 0.25rem 0; font-size: 1.1rem; }
+.book-info .author { margin: 0 0 0.5rem 0; color: var(--text-muted); font-size: 0.9rem; }
+
+.badge-category { background: #e0f2fe; color: #0369a1; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; }
+
+.book-status-zone { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+@media (max-width: 550px) { .book-status-zone { align-items: flex-start; width: 100%; } }
+
+.status-tag { font-size: 0.8rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 4px; text-transform: uppercase; }
+.status-tag.available { background: #dcfce7; color: #15803d; }
+.status-tag.borrowed { background: #fee2e2; color: #b91c1c; }
+
+.action-link-btn { background: transparent; color: var(--primary); font-weight: 600; padding: 0; font-size: 0.9rem; }
+.action-link-btn:hover { color: var(--primary-hover); text-decoration: underline; }
+.action-link-btn.return-btn { color: #b91c1c; }
+
+.borrow-details { display: flex; flex-direction: column; align-items: flex-end; color: var(--text-muted); }
+@media (max-width: 550px) { .borrow-details { align-items: flex-start; } }
+
+.borrow-overlay { background: #fef08a; border-color: #fef08a; }
+.hidden { display: none !important; }
+.empty-msg { text-align: center; color: var(--text-muted); padding: 2rem 0; }
