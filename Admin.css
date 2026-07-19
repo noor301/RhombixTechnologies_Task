@@ -1,0 +1,44 @@
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+});
+
+// Attach the JWT (if present) to every outgoing request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('foodhub_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Normalize error messages so components can just read err.message
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const message =
+      err.response?.data?.message || err.message || 'Something went wrong. Please try again.';
+    return Promise.reject(new Error(message));
+  }
+);
+
+// ---- Auth ----
+export const registerUser = (payload) => api.post('/auth/register', payload).then((r) => r.data);
+export const loginUser = (payload) => api.post('/auth/login', payload).then((r) => r.data);
+export const fetchMe = () => api.get('/auth/me').then((r) => r.data);
+
+// ---- Restaurants & Menu ----
+export const fetchRestaurants = () => api.get('/restaurants').then((r) => r.data);
+export const fetchMenu = (params) => api.get('/menu', { params }).then((r) => r.data);
+export const createMenuItem = (payload) => api.post('/menu', payload).then((r) => r.data);
+export const updateMenuItem = (id, payload) => api.put(`/menu/${id}`, payload).then((r) => r.data);
+export const deleteMenuItem = (id) => api.delete(`/menu/${id}`).then((r) => r.data);
+
+// ---- Orders ----
+export const placeOrder = (payload) => api.post('/orders', payload).then((r) => r.data);
+export const fetchMyOrders = () => api.get('/orders/mine').then((r) => r.data);
+export const fetchOrder = (id) => api.get(`/orders/${id}`).then((r) => r.data);
+export const fetchAllOrders = () => api.get('/orders').then((r) => r.data);
+export const updateOrderStatus = (id, status) =>
+  api.patch(`/orders/${id}/status`, { status }).then((r) => r.data);
+
+export default api;

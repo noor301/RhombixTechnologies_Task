@@ -1,0 +1,60 @@
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { fetchMyOrders } from '../api/api';
+import './OrderHistory.css';
+
+export default function OrderHistory() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchMyOrders()
+      .then(setOrders)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="container">
+      <div className="page-header">
+        <h1>My orders</h1>
+        <p>Track your current and past FoodHub orders.</p>
+      </div>
+
+      {error && <div className="banner banner-error">{error}</div>}
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+          <div className="spinner" />
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="empty-state">
+          <h3>No orders yet.</h3>
+          <p>Once you place an order, it'll show up here.</p>
+          <Link to="/" className="btn btn-primary">Browse the menu</Link>
+        </div>
+      ) : (
+        <div className="order-list">
+          {orders.map((order) => (
+            <div className="order-row" key={order.id}>
+              <div className="order-row-main">
+                <span className="mono order-number">{order.orderNumber}</span>
+                <span className={`badge badge-${order.status}`}>
+                  {order.status.replace(/_/g, ' ')}
+                </span>
+              </div>
+              <p className="order-items-preview">
+                {order.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}
+              </p>
+              <div className="order-row-footer">
+                <span>{new Date(order.createdAt).toLocaleString()}</span>
+                <span className="mono order-total">Rs {order.total.toLocaleString()}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

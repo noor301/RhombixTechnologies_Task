@@ -1,0 +1,95 @@
+import React, { useEffect, useState } from 'react';
+import { fetchAllOrders, updateOrderStatus } from '../../api/api';
+
+const STATUSES = ['placed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
+
+export default function OrderTracker() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  function loadOrders() {
+    setLoading(true);
+    fetchAllOrders()
+      .then(setOrders)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(loadOrders, []);
+
+  // Simple polling so admins see new orders without a manual refresh
+  useEffect(() => {
+    const interval = setInterval(loadOrders, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  async function handleStatusChange(orderId, status) {
+    try {
+      await updateOrderStatus(orderId, status);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const visibleOrders =
+    statusFilter === 'all' ? orders : orders.filter((o) => o.status === statusFilter);
+
+  return (
+    <div>
+      {error && <div className="banner banner-error">{error}</div>}
+
+      <div className="admin-filter-row">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All statuses</option>
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+          ))}
+        </select>
+        <span className="admin-count">{visibleOrders.length} order(s)</span>
+      </div>
+
+      {loading ? (
+        <div className="spinner" />
+      ) : visibleOrders.length === 0 ? (
+        <div className="empty-state"><h3>No orders here yet.</h3></div>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Total</th>
+              <th>Placed</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleOrders.map((order) => (
+              <tr key={order.id}>
+                <td className="mono">{order.orderNumber}</td>
+                <td>{order.customerName}</td>
+                <td>{order.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</td>
+                <td className="mono">Rs {order.total.toLocaleString()}</td>
+                <td>{new Date(order.createdAt).toLocaleString()}</td>
+                <td>
+                  <select
+                    value={order.status}
+                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}

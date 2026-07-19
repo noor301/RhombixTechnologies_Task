@@ -1,0 +1,113 @@
+# Deploying FoodHub to Google Cloud (Cloud Run)
+
+This deploys the backend API and the frontend as two separate Cloud Run services. Both are containerized with the Dockerfiles already included in `backend/` and `frontend/`.
+
+**Storage caveat first:** the backend stores data in a local `db.json` file. Cloud Run containers are stateless — the filesystem resets on redeploys, and if the service ever scales to more than one instance, each instance has its own copy of the data. For a demo/portfolio deploy this is fine (see the "keep it stable" note in step 3). For anything real, swap `lowdb`/`db.json` for Firestore or Cloud SQL before going further.
+
+## Prerequisites
+
+1. A Google Cloud project with billing enabled.
+2. [Install the gcloud CLI](https://cloud.google.com/sdk/docs/install), then:
+   ```bash
+   gcloud auth login
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+3. Enable the required APIs (one-time per project):
+   ```bash
+   gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+   ```
+
+You don't need Docker installed locally — `gcloud run deploy --source` builds the container for you in the cloud using the Dockerfile in each folder.
+
+## Step 1 — Deploy the backend
+
+```bash
+cd backend
+
+gcloud run deploy foodhub-api \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars JWT_SECRET=$(openssl rand -hex 32),JWT_EXPIRES_IN=7d
+```
+
+- `--allow-unauthenticated` makes the API publicly reachable (needed so the frontend can call it from the browser).
+- The `openssl rand -hex 32` generates a real random secret instead of the placeholder in `.env.example` — don't reuse that placeholder in production.
+- When it finishes, gcloud prints a **Service URL**, e.g. `https://foodhub-api-abc123-uc.a.run.app`. Copy it — you'll need it in step 2.
+
+Verify it's live:
+```bash
+curl https://foodhub-api-abc123-uc.a.run.app/api/health
+# {"status":"ok"}
+```
+
+## Step 2 — Point the frontend at the backend
+
+Create `frontend/.env.production` with the URL from step 1 (include `/api`):
+
+```bash
+cd ../frontend
+echo "REACT_APP_API_URL=https://foodhub-api-abc123-uc.a.run.app/api" > .env.production
+```
+
+Create React App bakes `REACT_APP_*` variables into the build at build time, so this file must exist **before** the next step.
+
+## Step 3 — Deploy the frontend
+
+```bash
+gcloud run deploy foodhub-frontend \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated
+```
+
+This builds the React app and serves it via nginx (see `frontend/Dockerfile` and `frontend/nginx.conf`). Cloud Run prints a Service URL when it's done — that's your live app.
+
+## Step 4 — Test it
+
+Open the frontend URL in a browser. Log in with the seeded demo admin:
+
+- **Email:** `admin@foodhub.com`
+- **Password:** `admin123`
+
+Or register a new customer account and place a test order.
+
+## Keeping the demo data stable
+
+Because of the file-storage caveat above, if you want the seeded/admin-added data to stay consistent between requests, pin the backend to a single instance:
+
+```bash
+gcloud run services update foodhub-api \
+  --region us-central1 \
+  --min-instances 1 \
+  --max-instances 1
+```
+
+This avoids Cloud Run spinning up a second instance with a fresh copy of `db.json`. It also means the service stays warm (no cold starts) but will incur small ongoing cost instead of scaling to zero.
+
+## Redeploying after changes
+
+Whenever you edit backend or frontend code, just re-run the same `gcloud run deploy` command from the matching folder — it rebuilds and creates a new revision automatically:
+
+```bash
+cd backend  && gcloud run deploy foodhub-api --source . --region us-central1
+cd ../frontend && gcloud run deploy foodhub-frontend --source . --region us-central1
+```
+
+## Custom domain (optional)
+
+```bash
+gcloud run domain-mappings create \
+  --service foodhub-frontend \
+  --domain www.yourdomain.com \
+  --region us-central1
+```
+
+Follow the DNS records Google gives you to verify ownership and point your domain at the service.
+
+## Troubleshooting
+
+- **Frontend loads but API calls fail / CORS errors:** double check `frontend/.env.production` has the correct backend URL (including `/api`) and that you rebuilt (`gcloud run deploy`) after changing it.
+- **"Permission denied" invoking the service:** make sure you included `--allow-unauthenticated` on both services.
+- **Login works but data disappears after a while:** see the min/max instance pinning note above, or migrate off `db.json` to a real database.
+- **Build fails on `npm ci`:** make sure `package-lock.json` is committed/included — `npm ci` requires it (it's already in this project).

@@ -1,0 +1,88 @@
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { fetchOrder } from '../api/api';
+import './Checkout.css';
+import './OrderConfirmation.css';
+
+export default function OrderConfirmation() {
+  const { id } = useParams();
+  const location = useLocation();
+  const [order, setOrder] = useState(location.state?.order || null);
+  const [loading, setLoading] = useState(!location.state?.order);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (order) return;
+    fetchOrder(id)
+      .then(setOrder)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [id, order]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="container empty-state">
+        <h3>We couldn't find that order.</h3>
+        <p>{error}</p>
+        <Link to="/" className="btn btn-primary">Back to menu</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container" style={{ maxWidth: 560, padding: '50px 24px 80px' }}>
+      <div className="confirm-badge">✓</div>
+      <h1 className="confirm-title">Order confirmed!</h1>
+      <p className="confirm-sub">
+        Thanks{order.customerName ? `, ${order.customerName.split(' ')[0]}` : ''} — your food is
+        being prepared.
+      </p>
+
+      <div className="ticket-tape">
+        <div className="confirm-number">
+          <span>Order number</span>
+          <strong className="mono">{order.orderNumber}</strong>
+        </div>
+        <div className="tape-divider" />
+        {order.items.map((item) => (
+          <div className="confirm-item" key={item.id}>
+            <span>{item.quantity} × {item.name}</span>
+            <span className="mono">Rs {(item.price * item.quantity).toLocaleString()}</span>
+          </div>
+        ))}
+        <div className="tape-divider" />
+        <div className="tape-summary-row">
+          <span>Subtotal</span>
+          <span className="mono">Rs {order.subtotal.toLocaleString()}</span>
+        </div>
+        <div className="tape-summary-row">
+          <span>Delivery fee</span>
+          <span className="mono">Rs {order.deliveryFee.toLocaleString()}</span>
+        </div>
+        <div className="tape-summary-row tape-total">
+          <span>Total</span>
+          <span className="mono">Rs {order.total.toLocaleString()}</span>
+        </div>
+        <div className="tape-divider" />
+        <p className="confirm-address"><strong>Deliver to:</strong> {order.address}</p>
+        <p className="confirm-address">
+          <strong>Payment:</strong> {order.paymentMethod === 'cod' ? 'Cash on delivery' : 'Card on delivery'}
+        </p>
+        <span className={`badge badge-${order.status}`}>{order.status.replace(/_/g, ' ')}</span>
+      </div>
+
+      <div className="confirm-actions">
+        <Link to="/orders" className="btn btn-outline btn-block">View my orders</Link>
+        <Link to="/" className="btn btn-primary btn-block">Order more food</Link>
+      </div>
+    </div>
+  );
+}
